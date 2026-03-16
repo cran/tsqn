@@ -11,24 +11,19 @@
 #' @export
 #' @examples
 #' covQn(rnorm(100),rnorm(100))
-covQn <-function(x,y){
-  leng.x <- length(x);
-  leng.y <- length(y);
-  alpha.qn <- robustbase::Qn(x);
-  beta.qn <- robustbase::Qn(y);
-  if(leng.x == leng.y){
-    if(identical(x,y)){
-      cov.qn <- robustbase::Qn(x)^2;
-      return(cov.qn);
-    } else {
-      cov.qn <- 0;
-      x.alpha <- x/alpha.qn;
-      y.beta <- y/beta.qn;
-      Qn1 <- robustbase::Qn(x.alpha + y.beta);
-      Qn2 <- robustbase::Qn(x.alpha - y.beta);
-      cov.qn <- ((alpha.qn*beta.qn)/4)*( (Qn1*Qn1) - (Qn2*Qn2));
-      return(cov.qn);
-    }
-  } else {
-    stop("x and y are unequal sizes");}
+covQn <- function(x, y){
+  if(length(x) != length(y)) {
+    stop("x and y are unequal sizes")
+  }
+  if(identical(x, y)) {
+    qn.x <- robustbase::Qn(x)
+    return(qn.x * qn.x)
+  }
+
+  alpha.qn <- robustbase::Qn(x)
+  beta.qn <- robustbase::Qn(y)
+  qn1 <- robustbase::Qn(x / alpha.qn + y / beta.qn)
+  qn2 <- robustbase::Qn(x / alpha.qn - y / beta.qn)
+
+  ((alpha.qn * beta.qn) / 4) * ((qn1 * qn1) - (qn2 * qn2))
 }

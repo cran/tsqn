@@ -9,13 +9,34 @@
 #' @examples
 #' dataset <- cbind(rnorm(100),rnorm(100))
 #' covMatQn(dataset)
-covMatQn <-function(x){
-  n <- length(x[1,])
-  cov.Mat.Qn <- matrix(data=NA,nrow=n,ncol=n)
-  for(i in 1:n){
-    for(j in 1:n){
-      cov.Mat.Qn[i,j] <- covQn(x[ ,i],x[ ,j])
+covMatQn <- function(x){
+  x <- as.matrix(x)
+  if(!is.numeric(x)) {
+    stop("'x' must be numeric")
+  }
+
+  n <- ncol(x)
+  qn.scale <- apply(x, 2L, robustbase::Qn)
+  cov.Mat.Qn <- matrix(0, nrow = n, ncol = n)
+  diag(cov.Mat.Qn) <- qn.scale * qn.scale
+
+  if(n <= 1L) {
+    return(cov.Mat.Qn)
+  }
+
+  for(i in seq_len(n - 1L)){
+    alpha.qn <- qn.scale[i]
+    xi.scaled <- x[, i] / alpha.qn
+    for(j in (i + 1L):n){
+      beta.qn <- qn.scale[j]
+      yj.scaled <- x[, j] / beta.qn
+      qn1 <- robustbase::Qn(xi.scaled + yj.scaled)
+      qn2 <- robustbase::Qn(xi.scaled - yj.scaled)
+      value <- ((alpha.qn * beta.qn) / 4) * ((qn1 * qn1) - (qn2 * qn2))
+      cov.Mat.Qn[i, j] <- value
+      cov.Mat.Qn[j, i] <- value
     }
   }
-  return(cov.Mat.Qn)
+
+  cov.Mat.Qn
 }

@@ -1,0 +1,63 @@
+---
+title: "PM10 Dataset Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PM10 Dataset Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette shows how to use the built-in `pm10` dataset with `tsqn`.
+
+```{r}
+library(tsqn)
+data("pm10")
+
+dim(pm10)
+head(pm10)
+```
+
+The complete dataset has 1826 observations for 8 monitoring stations.
+For faster examples in this vignette, we use the first 365 observations.
+
+```{r}
+pm10_subset <- as.matrix(pm10[1:365, ])
+
+qn_cor <- corMatQn(pm10_subset)
+qn_cov <- covMatQn(pm10_subset)
+
+round(qn_cor, 3)
+round(qn_cov, 1)
+```
+
+Robust ACF and robust spectral analysis for one station:
+
+```{r}
+vix <- pm10_subset[, "VixCentro"]
+
+acf_qn <- robacf(vix, lag.max = 24, type = "correlation", plot = FALSE)
+head(acf_qn$acf[, 1, 1], 10)
+
+per_qn <- PerQn(vix)
+length(per_qn)
+head(per_qn, 10)
+
+GPH_estimate(vix, method = "GPH-Qn")
+```
+
+```{r fig.width=7, fig.height=4}
+tsqn:::plot.robacf(acf_qn, main = "PM10 Robust ACF (VixCentro)")
+```
+
+For comparison, the classical (standard) ACF is:
+
+```{r fig.width=7, fig.height=4}
+stats::acf(vix, lag.max = 24, main = "PM10 Standard ACF (VixCentro)")
+```

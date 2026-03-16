@@ -10,20 +10,25 @@
 #' @import MASS
 #' @examples
 #' PerioMrob(ldeaths)
-PerioMrob=function(series){
+PerioMrob <- function(series){
   n <- length(series)
-  periorob <- FFT <- NULL
-  g <- n-1
-  for(j in 1:g){
-    X1 <- X2<-NULL
-    w<-2*pi*j/n
-    for(i in 1:n) {
-      X1[i]<-cos(w*i); X2[i]<-sin(w*i)
-    }
-  MX <- cbind(X1,X2)
-  fitrob <- MASS::rlm(series~MX-1, method = "M", psi = MASS::psi.huber)
-  FFT[j] <- sqrt(n/(8*pi))*complex(real=fitrob$coef[1], imaginary=-fitrob$coef[2])
-  periorob[j] <- Mod(FFT[j])^2
+  g <- n - 1L
+  periorob <- numeric(g)
+  if(g <= 0L) {
+    return(periorob)
   }
-  return(periorob)
+
+  idx <- seq_len(n)
+  freq.scale <- 2 * pi / n
+  fft.scale <- sqrt(n / (8 * pi))
+
+  for(j in seq_len(g)){
+    wj <- freq.scale * j
+    mx <- cbind(cos(wj * idx), sin(wj * idx))
+    fitrob <- MASS::rlm(series ~ mx - 1, method = "M", psi = MASS::psi.huber)
+    fft.j <- fft.scale * complex(real = fitrob$coef[1], imaginary = -fitrob$coef[2])
+    periorob[j] <- Mod(fft.j)^2
+  }
+
+  periorob
 }

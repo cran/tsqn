@@ -4,12 +4,23 @@
 \alias{plot.robacf}
 \title{Plot Robust Autocovariance and Robust Autocorrelation Functions}
 \usage{
-\method{plot}{robacf}(x, type = "h", xlab = "Lag", ylab = NULL,
-  ylim = NULL, main = NULL, max.mfrow = 6, ask = Npgs > 1 &&
-  dev.interactive(), mar = if (nser > 2) c(3, 2, 2, 0.8) else par("mar"),
-  oma = if (nser > 2) c(1, 1.2, 1, 1) else par("oma"), mgp = if (nser > 2)
-  c(1.5, 0.6, 0) else par("mgp"), xpd = par("xpd"), cex.main = if (nser > 2)
-  1 else par("cex.main"), verbose = getOption("verbose"), ...)
+\method{plot}{robacf}(
+  x,
+  type = "h",
+  xlab = "Lag",
+  ylab = NULL,
+  ylim = NULL,
+  main = NULL,
+  max.mfrow = 6,
+  ask = Npgs > 1 && dev.interactive(),
+  mar = if (nser > 2) c(3, 2, 2, 0.8) else par("mar"),
+  oma = if (nser > 2) c(1, 1.2, 1, 1) else par("oma"),
+  mgp = if (nser > 2) c(1.5, 0.6, 0) else par("mgp"),
+  xpd = par("xpd"),
+  cex.main = if (nser > 2) 1 else par("cex.main"),
+  verbose = getOption("verbose"),
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class "robacf".}

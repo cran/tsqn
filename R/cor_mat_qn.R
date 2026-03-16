@@ -10,12 +10,32 @@
 #' dataset <- cbind(rnorm(100),rnorm(100))
 #' corMatQn(dataset)
 corMatQn <- function(x){
-  n <- length(x[1,])
-  cor.Mat.Qn <- matrix(data=NA,nrow=n,ncol=n)
-  for(i in 1:n){
-    for(j in 1:n){
-      cor.Mat.Qn[i,j] <- corQn(x[ ,i],x[ ,j])
+  x <- as.matrix(x)
+  if(!is.numeric(x)) {
+    stop("'x' must be numeric")
+  }
+
+  n <- ncol(x)
+  cor.Mat.Qn <- diag(1, nrow = n, ncol = n)
+  if(n <= 1L) {
+    return(cor.Mat.Qn)
+  }
+
+  qn.scale <- apply(x, 2L, robustbase::Qn)
+
+  for(i in seq_len(n - 1L)){
+    xi.scaled <- x[, i] / qn.scale[i]
+    for(j in (i + 1L):n){
+      yj.scaled <- x[, j] / qn.scale[j]
+      qn1 <- robustbase::Qn(xi.scaled + yj.scaled)
+      qn2 <- robustbase::Qn(xi.scaled - yj.scaled)
+      qn1.sq <- qn1 * qn1
+      qn2.sq <- qn2 * qn2
+      value <- (qn1.sq - qn2.sq) / (qn1.sq + qn2.sq)
+      cor.Mat.Qn[i, j] <- value
+      cor.Mat.Qn[j, i] <- value
     }
   }
-  return(cor.Mat.Qn)
+
+  cor.Mat.Qn
 }

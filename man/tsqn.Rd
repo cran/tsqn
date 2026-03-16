@@ -7,13 +7,8 @@
     robust periodogram approach. }
 
 \details{
-\tabular{ll}{
-Package: \tab TimeSeriesQn\cr
-Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2017-03-08\cr
-License: \tab GPL (>= 2)\cr
-}
+Package metadata (version, date, license, and dependencies) are provided by
+the package DESCRIPTION and shown by the help system and CRAN reference manual.
 }
 
 \author{

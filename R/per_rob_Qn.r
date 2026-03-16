@@ -11,27 +11,33 @@
 #' @export
 #' @examples
 #' PerQn(ldeaths)
-PerQn <- function(x,window="truncated",bandw.rob=0.7){
+PerQn <- function(x, window = "truncated", bandw.rob = 0.7){
   n <- length(x)
-  kk <- 1:(n-1)
-  g <- (n-1)
-  j <- 1:g
-  w <- (2*pi*j)/n
-  M <- trunc(n^bandw.rob)
-  pw <- numeric(n-2)
-  if (is.null(window)){
-    pw <- rep(1,n-2)}
-  else { #(window=="truncated")
-    for(i in 1:(n-2)){
-      pw[i]<-ifelse(i<M,1.0,0.0)
-    }
+  g <- n - 1L
+  if(g <= 1L) {
+    return(numeric(0))
   }
-  cov.aux <- robacf(x,lag.max = n,type="covariance",plot=FALSE)$acf
-  cov.x0 <- cov.aux[,,1][1]
-  cov.x <- cov.aux[,,1][2:(n-1)]
-  per<- matrix(0, g, 1)
-  for(i in 1:g){
-    per[i] <- (1/(2*pi))*(cov.x0 + 2*sum(cov.x*pw*cos(w[i]*(1:(n-2)))))
+
+  w <- (2 * pi * seq_len(g)) / n
+  m <- trunc(n^bandw.rob)
+  n.weights <- n - 2L
+  if(is.null(window)) {
+    pw <- rep(1, n.weights)
+  } else { # (window == "truncated")
+    pw <- as.numeric(seq_len(n.weights) < m)
   }
-  return(per[1:(g-1)])
+
+  cov.aux <- robacf(x, lag.max = n, type = "covariance", plot = FALSE)$acf
+  cov.vec <- cov.aux[, 1L, 1L]
+  cov.x0 <- cov.vec[1L]
+  cov.x <- cov.vec[2:(n - 1L)]
+  weighted.cov <- cov.x * pw
+  lag.idx <- seq_len(n.weights)
+
+  per <- numeric(g)
+  for(i in seq_len(g)){
+    per[i] <- (1 / (2 * pi)) * (cov.x0 + 2 * sum(weighted.cov * cos(w[i] * lag.idx)))
+  }
+
+  per[seq_len(g - 1L)]
 }

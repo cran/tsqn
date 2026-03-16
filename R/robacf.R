@@ -33,99 +33,108 @@
 #' data.set <- cbind(fdeaths,mdeaths)
 #' robacf(data.set)
 #' robacf(data.set,type="covariance",lag.max=10)
-robacf <- function(x, lag.max = NULL, type=c("correlation", "covariance"), plot=TRUE, na.action = na.fail, demean = TRUE, ...){
+robacf <- function(x, lag.max = NULL, type = c("correlation", "covariance"), plot = TRUE, na.action = na.fail, demean = TRUE, ...){
   type <- match.arg(type)
   series <- deparse(substitute(x))
   x <- na.action(as.ts(x))
   x.freq <- frequency(x)
   x <- as.matrix(x)
-  if(!is.numeric(x))
+
+  if(!is.numeric(x)) {
     stop("'x' must be numeric")
+  }
+
   sampleT <- as.integer(nrow(x))
   nser <- as.integer(ncol(x))
-  if(is.na(sampleT) || is.na(nser))
+  if(is.na(sampleT) || is.na(nser)) {
     stop("'sampleT' and 'nser' must be integer")
-  if (is.null(lag.max))
+  }
+
+  if(is.null(lag.max)) {
     lag.max <- floor(10 * (log10(sampleT) - log10(nser)))
+  }
   lag.max <- as.integer(min(lag.max, sampleT - 1L))
-  if (is.na(lag.max) || lag.max < 0)
+  if(is.na(lag.max) || lag.max < 0L) {
     stop("'lag.max' must be at least 0")
-  if(demean)
-    x <- sweep(x, 2, colMeans(x, na.rm = TRUE), check.margin=FALSE)
+  }
+
+  if(demean) {
+    x <- sweep(x, 2L, colMeans(x, na.rm = TRUE), check.margin = FALSE)
+  }
+
   lag <- matrix(1, nser, nser)
   lag[lower.tri(lag)] <- -1
-  acf.Qn <- matrix(1,lag.max,1)
-  acf.Qn <- array(1, c(lag.max,nser,nser))
-  if(nser==1L){#Univariate
-    if(type=="correlation"){
-      for(h in 1:(lag.max)){
-        U <- x[h:sampleT]
-        V <- x[1:(sampleT-(h-1))]
-        Q.plus <- robustbase::Qn(U+V)^2
-        Q.min <- robustbase::Qn(U-V)^2
-        acf.Qn[h]<-(Q.plus-Q.min)/(Q.plus+Q.min)
+  acf.Qn <- array(1, c(lag.max, nser, nser))
+  lag.seq <- seq_len(lag.max)
+  is.correlation <- identical(type, "correlation")
+
+  if(lag.max > 0L) {
+    if(nser == 1L) { # Univariate
+      x.vec <- x[, 1L]
+      for(h in lag.seq){
+        idx.end <- sampleT - h + 1L
+        u <- x.vec[h:sampleT]
+        v <- x.vec[seq_len(idx.end)]
+        q.plus <- robustbase::Qn(u + v)
+        q.min <- robustbase::Qn(u - v)
+        q.plus.sq <- q.plus * q.plus
+        q.min.sq <- q.min * q.min
+        if(is.correlation) {
+          acf.Qn[h, 1L, 1L] <- (q.plus.sq - q.min.sq) / (q.plus.sq + q.min.sq)
+        } else {
+          acf.Qn[h, 1L, 1L] <- 0.25 * (q.plus.sq - q.min.sq)
+        }
       }
-    }
-    else{
-      for(h in 1:(lag.max)){
-        U <- x[h:sampleT]
-        V <- x[1:(sampleT-(h-1))]
-        Q.plus<- robustbase::Qn(U+V)^2
-        Q.min <- robustbase::Qn(U-V)^2
-        acf.Qn[h] <- (1/4)*(Q.plus-Q.min)
+    } else { # Multivariate
+      qn.scale <- apply(x, 2L, robustbase::Qn)
+      x.scaled <- sweep(x, 2L, qn.scale, "/", check.margin = FALSE)
+
+      for(i in seq_len(nser)){
+        xi <- x[, i]
+        xi.scaled <- x.scaled[, i]
+        for(j in seq_len(nser)){
+          yj <- x[, j]
+          yj.scaled <- x.scaled[, j]
+          use.scaled <- i != j
+          if(!is.correlation) {
+            pair.scale <- if(use.scaled) (qn.scale[i] * qn.scale[j]) / 4 else 0.25
+          }
+
+          for(h in lag.seq){
+            idx.end <- sampleT - h + 1L
+            if(use.scaled) {
+              u <- xi.scaled[h:sampleT]
+              v <- yj.scaled[seq_len(idx.end)]
+            } else {
+              u <- xi[h:sampleT]
+              v <- yj[seq_len(idx.end)]
+            }
+
+            q.plus <- robustbase::Qn(u + v)
+            q.min <- robustbase::Qn(u - v)
+            q.plus.sq <- q.plus * q.plus
+            q.min.sq <- q.min * q.min
+
+            if(is.correlation) {
+              acf.Qn[h, j, i] <- (q.plus.sq - q.min.sq) / (q.plus.sq + q.min.sq)
+            } else {
+              acf.Qn[h, j, i] <- pair.scale * (q.plus.sq - q.min.sq)
+            }
+          }
+        }
       }
     }
   }
-    else{#Multivariate
-      if(type=="correlation"){
-        for(i in 1:nser){
-          for(j in 1:nser){
-            for(h in 1:(lag.max)){
-              if(i==j){
-                alpha.qn <- 1
-                beta.qn <- 1
-              }
-              else{
-                alpha.qn <- robustbase::Qn(x[,i])
-                beta.qn <- robustbase::Qn(x[,j])
-              }
-              U <- x[h:sampleT,i]/alpha.qn
-              V <- x[1:(sampleT-(h-1)),j]/beta.qn
-              Q.plus <- robustbase::Qn(U+V)^2
-              Q.min <- robustbase::Qn(U-V)^2
-              acf.Qn[h,j,i] <- (Q.plus-Q.min)/(Q.plus+Q.min)
-            }
-          }
-        }
-      }
-      else{
-        for(i in 1:nser){
-          for(j in 1:nser){
-            for(h in 1:(lag.max)){
-              if(i==j){
-                alpha.qn <- 1
-                beta.qn <- 1
-              }
-              else{
-                alpha.qn <- robustbase::Qn(x[,i])
-                beta.qn <- robustbase::Qn(x[,j])
-              }
-              U <- x[h:sampleT,i]/alpha.qn
-              V <- x[1:(sampleT-(h-1)),j]/beta.qn
-              Q.plus <- robustbase::Qn(U+V)^2
-              Q.min <- robustbase::Qn(U-V)^2
-              acf.Qn[h,j,i] <- (alpha.qn*beta.qn/4)*(Q.plus-Q.min)
-            }
-          }
-        }
-      }
 
-    }
-    lag <- outer(0:(lag.max-1), lag/x.freq)
-  acf.out <- structure(list(acf = acf.Qn, type = type, n.used = sampleT,lag = lag, series = series, snames = colnames(x)),
+  lag.values <- if(lag.max > 0L) 0:(lag.max - 1L) else numeric(0)
+  lag <- outer(lag.values, lag / x.freq)
+  acf.out <- structure(list(acf = acf.Qn, type = type, n.used = sampleT, lag = lag, series = series, snames = colnames(x)),
                        class = "robacf")
-  if (plot) {
+
+  if(plot) {
     plot.robacf(acf.out)
     invisible(acf.out)
-  }else acf.out
+  } else {
+    acf.out
+  }
 }

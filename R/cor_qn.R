@@ -11,23 +11,20 @@
 #' @export
 #' @examples
 #' corQn(rnorm(100),rnorm(100))
-corQn <-function(x,y){
-  leng.x <- length(x);
-  leng.y <- length(y);
-  alpha.qn <- robustbase::Qn(x);
-  beta.qn <- robustbase::Qn(y);
-  if(leng.x == leng.y){
-    if(identical(x,y)){
-      return(1);
-    } else {
-      cor.qn <- 0;
-      x.alpha <- x/alpha.qn;
-      y.beta <- y/beta.qn;
-      Qn1 <- robustbase::Qn(x.alpha + y.beta);
-      Qn2 <- robustbase::Qn(x.alpha - y.beta);
-      cor.qn <- ((Qn1*Qn1) - (Qn2*Qn2))/((Qn1*Qn1) + (Qn2*Qn2));
-      return(cor.qn);
-    }
-  } else {
-    stop("x and y are unequal sizes");}
+corQn <- function(x, y){
+  if(length(x) != length(y)) {
+    stop("x and y are unequal sizes")
+  }
+  if(identical(x, y)) {
+    return(1)
+  }
+
+  alpha.qn <- robustbase::Qn(x)
+  beta.qn <- robustbase::Qn(y)
+  qn1 <- robustbase::Qn(x / alpha.qn + y / beta.qn)
+  qn2 <- robustbase::Qn(x / alpha.qn - y / beta.qn)
+  qn1.sq <- qn1 * qn1
+  qn2.sq <- qn2 * qn2
+
+  (qn1.sq - qn2.sq) / (qn1.sq + qn2.sq)
 }

@@ -23,41 +23,39 @@
 #' GPH_estimate(simseries$series,method="GPH-Qn")$d
 #' GPH_estimate(simseries$series,method="GPH-M")$d
 #' }
-GPH_estimate <- function (series,bandw.exp = 0.7,method="GPH"){
+GPH_estimate <- function(series, bandw.exp = 0.7, method = "GPH"){
   # There are 3 methods to compute GPH fractional estimates:
   # Method = GPH ( classical Periodogram), GPH-M ( M-spectral) GPH-Qn ( ACF robust Qn)
   n <- length(series)
   gn <- trunc(n^bandw.exp)
-  if(method=='GPH') {
+
+  if(method == "GPH") {
     # USE the periodogram classical- GPH- estimates.
-    n <- length(series)
     x <- unclass(series) - mean(series)
-    FFT <- fft(x)/sqrt(n)
-    periodogramFFT <-((Mod(FFT))^2)/(2*pi)
-    spectralest<-periodogramFFT[2:n]
-  }
-  else if(method =='GPH-M'){
-       spectralest<-PerioMrob(series)
-  }
-  else {
+    fft.values <- fft(x) / sqrt(n)
+    periodogram.fft <- (Mod(fft.values)^2) / (2 * pi)
+    spectralest <- periodogram.fft[2:n]
+  } else if(method == "GPH-M") {
+    spectralest <- PerioMrob(series)
+  } else {
     method <- "Qn"
-    spectralest<-PerQn(series)
+    spectralest <- PerQn(series)
   }
+
   # Next steps: Estimation of d by regression method.
-  contgn <- 0.0
-  y.reg <-NULL
-  x.reg <- NULL
-  for(j in 1:gn) {
-    w <- 2 * pi * j/n
-    if(spectralest[j] > 0) {
-      y.reg[j] <- log(spectralest[j]/(2 * pi))
-      x.reg[j] <- 2 * log(2 * sin(w/2))
-      contgn <- contgn +1
-    }}
+  j <- seq_len(gn)
+  w <- 2 * pi * j / n
+  spectral.slice <- spectralest[j]
+  valid <- spectral.slice > 0
+  y.reg <- log(spectral.slice[valid] / (2 * pi))
+  x.reg <- 2 * log(2 * sin(w[valid] / 2))
+  contgn <- length(y.reg)
+
   fit <- stats::lm(y.reg ~ x.reg)
   d.GPH <- coef(fit)[2]
   names(d.GPH) <- NULL
   x.r2 <- sum((x.reg - mean(x.reg))^2)
-  var.reg <- sum(resid(fit)^2)/((contgn - 1) * x.r2)
-  results <- list(method=method,d = -d.GPH, sd.reg = sqrt(var.reg),bandw.exp)
+  var.reg <- sum(resid(fit)^2) / ((contgn - 1) * x.r2)
+
+  list(method = method, d = -d.GPH, sd.reg = sqrt(var.reg), bandw.exp)
 }
